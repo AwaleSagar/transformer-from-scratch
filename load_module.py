@@ -28,10 +28,12 @@ def load(filename):
     """
     path = os.path.join(_DIR, filename)
     if not os.path.isfile(path):
-        raise FileNotFoundError(f"Lesson file not found: {path}")
+        raise FileNotFoundError(f"Lesson file not found in repository lesson files: {filename}")
     spec = importlib.util.spec_from_file_location(filename[:-3], path)
-    if spec is None or spec.loader is None:
-        raise ImportError(f"Could not create import spec for lesson file: {path}")
+    if spec is None:
+        raise ImportError(f"Could not create import spec for lesson file: {filename}")
+    if spec.loader is None:
+        raise ImportError(f"Import spec has no loader for lesson file: {filename}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
