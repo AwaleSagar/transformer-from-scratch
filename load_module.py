@@ -27,7 +27,11 @@ def load(filename):
         The imported module object.
     """
     path = os.path.join(_DIR, filename)
+    if not os.path.isfile(path):
+        raise FileNotFoundError(f"Lesson file not found: {path}")
     spec = importlib.util.spec_from_file_location(filename[:-3], path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not create import spec for lesson file: {path}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
