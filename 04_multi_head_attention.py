@@ -30,7 +30,8 @@ Shapes (for our config: d_model=32, n_heads=2, d_k=16):
 """
 
 import numpy as np
-import sys, os
+import sys
+import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
