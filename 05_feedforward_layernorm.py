@@ -34,7 +34,8 @@ We also implement a reusable Linear layer (matrix multiply + bias).
 """
 
 import numpy as np
-import sys, os
+import sys
+import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 

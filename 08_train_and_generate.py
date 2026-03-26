@@ -31,7 +31,8 @@ What to expect:
 
 import numpy as np
 import time
-import sys, os
+import sys
+import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -148,7 +149,7 @@ def generate(model, tokenizer, prompt, max_tokens=20, temperature=1.0):
         else:
             # Temperature scaling
             scaled = next_logits / temperature
-            probs = softmax(scaled.reshape(1, -1))[0]     # (vocab_size,)
+            probs = softmax(scaled)                        # (vocab_size,)
 
             # Sample from the distribution
             next_id = int(np.random.choice(len(probs), p=probs))
@@ -210,6 +211,7 @@ def train(model, training_pairs, tokenizer, epochs=100, lr=0.05,
             epoch_loss += loss
 
             # Backward pass
+            optimizer.zero_grad()
             model.backward(grad_logits)
 
             # Update parameters
@@ -256,17 +258,11 @@ def print_loss_chart(loss_history, width=50):
     print(f"\n  Loss Curve:")
     print(f"  {'─' * (width + 10)}")
 
-    # Sample ~20 points for the chart
+    # Sample ~20 points for the chart, always including the last point
     step = max(1, len(loss_history) // 20)
-    for i in range(0, len(loss_history), step):
+    sampled = sorted(set(range(0, len(loss_history), step)) | {len(loss_history) - 1})
+    for i in sampled:
         epoch, loss = loss_history[i]
-        bar_len = int((loss - min_loss) / loss_range * width)
-        bar = "█" * bar_len
-        print(f"  E{epoch:4d} │{bar} {loss:.3f}")
-
-    # Last point
-    if len(loss_history) - 1 not in range(0, len(loss_history), step):
-        epoch, loss = loss_history[-1]
         bar_len = int((loss - min_loss) / loss_range * width)
         bar = "█" * bar_len
         print(f"  E{epoch:4d} │{bar} {loss:.3f}")

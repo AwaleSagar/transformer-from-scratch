@@ -21,7 +21,8 @@ From "Attention Is All You Need" (Vaswani et al., 2017):
 """
 
 import numpy as np
-import sys, os
+import sys
+import os
 
 # Allow importing from the same directory when run as a script
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -68,6 +69,9 @@ class TokenEmbedding:
         self.d_model = d_model
         self.W = xavier_init((vocab_size, d_model), seed=seed)
 
+        # Gradient accumulator (set during backward)
+        self.grad_W = None
+
         # Cache for backward pass
         self._token_ids = None
 
@@ -92,15 +96,15 @@ class TokenEmbedding:
             grad_W: gradient for the embedding table
                     (same shape as self.W, mostly zeros)
         """
-        grad_W = np.zeros_like(self.W)
+        self.grad_W = np.zeros_like(self.W)
         # Accumulate gradients for each token that was looked up.
         # If a token appears multiple times, its gradients add up.
-        np.add.at(grad_W, self._token_ids, grad_output)
-        return grad_W
+        np.add.at(self.grad_W, self._token_ids, grad_output)
+        return self.grad_W
 
     def parameters(self):
         """Return list of (param_array, grad_array) for optimizer."""
-        return [(self.W, None)]  # grad set during backward
+        return [(self.W, self.grad_W)]
 
 
 class PositionalEncoding:

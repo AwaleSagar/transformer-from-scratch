@@ -48,7 +48,8 @@ Model Config (tiny, CPU-friendly):
 """
 
 import numpy as np
-import sys, os
+import sys
+import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -156,7 +157,7 @@ class Transformer:
         # 4. Output projection: d_model → vocab_size
         self.output_proj = Linear(d_model, vocab_size, seed=seed + 9999)
 
-        # Precompute masks for common sequence lengths
+        # Cache for causal masks, keyed by sequence length
         self._mask_cache = {}
 
     def forward(self, token_ids):
