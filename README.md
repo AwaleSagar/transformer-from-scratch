@@ -1,6 +1,8 @@
 # Building a Transformer From Scratch
 
-> **An 8-part educational series** — build a GPT-style language model block by block in Python using only NumPy. Every forward *and* backward pass is hand-written so you can see exactly how gradients flow through the architecture.
+> **A 12-part educational series** — build a GPT-style language model block by block in Python using only NumPy, then upgrade it to the modern 2026 architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache). In Blocks 1–8 every forward *and* backward pass is hand-written so you can see exactly how gradients flow through the architecture.
+
+**New (2026):** Blocks 9–12 + [`TRANSFORMERS_2026.md`](TRANSFORMERS_2026.md) — what changed between the 2017 paper and the models you use today, with runnable code for each upgrade.
 
 ---
 
@@ -71,7 +73,18 @@ Each file introduces one concept, imports from the previous files, and includes 
 | 7 | `07_transformer.py` | **Full Transformer** | Stack all blocks, cross-entropy loss, full forward/backward |
 | 8 | `08_train_and_generate.py` | **Training & Generation** | SGD optimizer, training loop, greedy & temperature-based text generation |
 
-**Dependency chain:** `01 → 02 → 03 → 04 → 05 → 06 → 07 → 08`
+### Modern series (2026) — forward-pass focused
+
+| # | File | Concept | What You'll Build |
+|---|------|---------|-------------------|
+| 9 | `09_rope.py` | **Rotary Position Embeddings** | RoPE rotation, proof that scores depend only on relative distance |
+| 10 | `10_rmsnorm_swiglu.py` | **RMSNorm + SwiGLU** | The modern norm and gated FFN that replaced LayerNorm/ReLU |
+| 11 | `11_gqa_kv_cache.py` | **GQA + KV Cache** | Grouped-Query Attention with cached generation, verified against the full pass |
+| 12 | `12_modern_transformer.py` | **Modern Transformer** | A Llama-style mini-model: RoPE + RMSNorm + SwiGLU + GQA + tied embeddings |
+
+**Dependency chain:** `01 → 02 → 03 → 04 → 05 → 06 → 07 → 08`, then `09 → 10 → 11 → 12` (uses `03` and `09`)
+
+See [`TRANSFORMERS_2026.md`](TRANSFORMERS_2026.md) for the full story of what changed since 2017 — and what we deliberately left out (MoE, sliding-window attention, QK-Norm) as exercises.
 
 ---
 
@@ -98,6 +111,15 @@ python3 04_multi_head_attention.py  # See per-head attention patterns
 python3 05_feedforward_layernorm.py # See FFN shapes, LayerNorm effect
 python3 06_transformer_block.py     # See data flow through a full block
 python3 07_transformer.py     # See full model forward/backward pass
+```
+
+### Run the modern (2026) blocks
+
+```bash
+python3 09_rope.py                # RoPE: relative-position property proof
+python3 10_rmsnorm_swiglu.py      # RMSNorm vs LayerNorm, SwiGLU gating
+python3 11_gqa_kv_cache.py        # GQA + KV cache, memory math
+python3 12_modern_transformer.py  # Full Llama-style block, cached generation
 ```
 
 ### Train and generate
@@ -367,6 +389,7 @@ This is expected — a 14K-parameter model on a 157-token corpus *should* memori
 ```
 transformer/
 ├── README.md                      ← You are here
+├── TRANSFORMERS_2026.md           ← Field guide: 2017 → 2026, models, learning path
 ├── load_module.py                 ← Import helper (Python can't import 01_*.py directly)
 ├── 01_tokenizer.py                ← Block 1: Tokenizer
 ├── 02_embeddings.py               ← Block 2: Token + Positional Embeddings
@@ -375,7 +398,11 @@ transformer/
 ├── 05_feedforward_layernorm.py    ← Block 5: FFN + Layer Normalization
 ├── 06_transformer_block.py        ← Block 6: Transformer Decoder Block
 ├── 07_transformer.py              ← Block 7: Full Transformer + Loss
-└── 08_train_and_generate.py       ← Block 8: Training Loop + Generation
+├── 08_train_and_generate.py       ← Block 8: Training Loop + Generation
+├── 09_rope.py                     ← Block 9: Rotary Position Embeddings (2026)
+├── 10_rmsnorm_swiglu.py           ← Block 10: RMSNorm + SwiGLU (2026)
+├── 11_gqa_kv_cache.py             ← Block 11: GQA + KV Cache (2026)
+└── 12_modern_transformer.py       ← Block 12: Modern Transformer Block (2026)
 ```
 
 ---
@@ -401,6 +428,10 @@ transformer/
 - [The Illustrated Transformer](https://jalammar.github.io/illustrated-transformer/) — Jay Alammar's visual guide
 - [GPT-2 Paper](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf) — Pre-Norm decoder-only architecture
 - [On Layer Normalization in the Transformer Architecture](https://arxiv.org/abs/2002.04745) — Pre-Norm vs Post-Norm analysis
+- [RoFormer: Rotary Position Embedding](https://arxiv.org/abs/2104.09864) — Su et al., 2021 (RoPE, Block 9)
+- [GLU Variants Improve Transformer](https://arxiv.org/abs/2002.05202) — Shazeer, 2020 (SwiGLU, Block 10)
+- [GQA: Generalized Multi-Query Attention](https://arxiv.org/abs/2305.13245) — Ainslie et al., 2023 (Block 11)
+- [The Big LLM Architecture Comparison](https://magazine.sebastianraschka.com/p/the-big-llm-architecture-comparison) — Raschka, 2025 (survey behind Blocks 9–12)
 
 ---
 
