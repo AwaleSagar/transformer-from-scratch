@@ -1,8 +1,47 @@
 # Building a Transformer From Scratch
 
-> **A 12-part educational series** — build a GPT-style language model block by block in Python using only NumPy, then upgrade it to the modern 2026 architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache). In Blocks 1–8 every forward *and* backward pass is hand-written so you can see exactly how gradients flow through the architecture.
+![Python](https://img.shields.io/badge/python-3.8+-blue?logo=python&logoColor=white)
+![NumPy](https://img.shields.io/badge/dependencies-numpy%20only-013243?logo=numpy&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Parameters](https://img.shields.io/badge/parameters-~14K-orange)
+![Trains in](https://img.shields.io/badge/trains%20in-~3s-success)
+![Blocks](https://img.shields.io/badge/blocks-12-purple)
 
-**New (2026):** Blocks 9–12 + [`TRANSFORMERS_2026.md`](TRANSFORMERS_2026.md) — what changed between the 2017 paper and the models you use today, with runnable code for each upgrade.
+> **A 12-part educational series** — build a GPT-style language model block by block in Python using only NumPy, then upgrade it to the modern 2026 architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache). Every forward *and* backward pass is hand-written so you can see exactly how gradients flow.
+
+**Loss drops from 2.65 → 0.18 in ~3 seconds on a CPU** — every weight matrix is small enough to print.
+
+```text
+  Epoch   1/100  Loss: 2.6523   "the cat chased the big and the cat..."
+  Epoch  100/100  Loss: 0.1808   "the cat watched the bird and the dog..."
+                          ▼  93.2% reduction
+```
+
+<p align="center">
+  <a href="#quick-start"><strong>Quick Start</strong></a> ·
+  <a href="#architecture-overview">Architecture</a> ·
+  <a href="#series-roadmap">Roadmap</a> ·
+  <a href="#block-by-block-deep-dive">Deep Dive</a> ·
+  <a href="TRANSFORMERS_2026.md">2026 Field Guide</a>
+</p>
+
+---
+
+## Table of Contents
+
+1. [Why This Series?](#why-this-series)
+2. [Quick Start](#quick-start)
+3. [Architecture Overview](#architecture-overview)
+4. [Series Roadmap](#series-roadmap)
+5. [Block-by-Block Deep Dive](#block-by-block-deep-dive)
+6. [What to Expect](#what-to-expect)
+7. [Model Configuration](#model-configuration)
+8. [Exercises](#exercises-for-students)
+9. [Key Design Decisions](#key-design-decisions)
+10. [File Structure](#file-structure)
+11. [Contributing](#contributing)
+12. [License](#license)
+13. [References](#references)
 
 ---
 
@@ -10,18 +49,77 @@
 
 Most transformer tutorials use PyTorch or TensorFlow, which hide the internals behind autograd and pre-built layers. This series strips everything down to raw matrix operations so you can:
 
-- **See** what `softmax`, `attention`, and `LayerNorm` actually compute
-- **Trace** how gradients propagate backward through every layer
-- **Run** the entire model on a CPU in under 5 seconds
-- **Inspect** every weight matrix (they're small enough to print)
+- ✅ **See** what `softmax`, `attention`, and `LayerNorm` actually compute
+- ✅ **Trace** how gradients propagate backward through every layer
+- ✅ **Verify** each backward pass with a numerical gradient check
+- ✅ **Run** the entire model on a CPU in under 5 seconds
+- ✅ **Inspect** every weight matrix (they're small enough to print)
+- ✅ **Understand** how 2017 became 2026 (RoPE, RMSNorm, SwiGLU, GQA)
 
 The model is deliberately tiny (~14,200 parameters, 24-word vocabulary) — it's a teaching tool, not a production system.
+
+*(back to [top](#building-a-transformer-from-scratch))*
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- Python 3.8+
+- NumPy
+
+### Install
+
+```bash
+git clone https://github.com/AwaleSagar/transformer.git
+cd transformer
+pip install -r requirements.txt      # just numpy
+```
+
+### Run
+
+Each block is self-contained with a runnable self-test and gradient checks:
+
+```bash
+python3 01_tokenizer.py              # vocabulary, encoding, training pairs
+python3 03_attention.py              # attention weights + gradient check
+python3 07_transformer.py            # full model forward/backward pass
+python3 08_train_and_generate.py     # train + generate text  ← the fun one
+```
+
+Or, in one line, train the whole model:
+
+```bash
+python3 08_train_and_generate.py
+```
+
+Expected output (~3 seconds on a modern CPU):
+
+```
+  Epoch    1/100  Loss: 2.6523  Sample: "the cat chased the big and..."
+  Epoch   50/100  Loss: 0.1980  Sample: "the cat the cat watched the bird..."
+  Epoch  100/100  Loss: 0.1808  Sample: "the cat watched the bird and the dog..."
+
+  Loss: 2.65 → 0.18 (93.2% reduction)
+```
+
+### Run the modern (2026) blocks
+
+```bash
+python3 09_rope.py                # RoPE: relative-position property proof
+python3 10_rmsnorm_swiglu.py      # RMSNorm vs LayerNorm, SwiGLU gating
+python3 11_gqa_kv_cache.py        # GQA + KV cache, memory math
+python3 12_modern_transformer.py  # full Llama-style block, cached generation
+```
+
+*(back to [top](#building-a-transformer-from-scratch))*
 
 ---
 
 ## Architecture Overview
 
-```
+```text
 Token IDs  [2, 3, 4, 5, 2, 6, ...]
     │
     ▼
@@ -56,6 +154,8 @@ Token IDs  [2, 3, 4, 5, 2, 6, ...]
 
 **Decoder-only** (GPT-style) — uses causal masking so each token can only attend to itself and earlier tokens.
 
+*(back to [top](#building-a-transformer-from-scratch))*
+
 ---
 
 ## Series Roadmap
@@ -82,76 +182,11 @@ Each file introduces one concept, imports from the previous files, and includes 
 | 11 | `11_gqa_kv_cache.py` | **GQA + KV Cache** | Grouped-Query Attention with cached generation, verified against the full pass |
 | 12 | `12_modern_transformer.py` | **Modern Transformer** | A Llama-style mini-model: RoPE + RMSNorm + SwiGLU + GQA + tied embeddings |
 
-**Dependency chain:** `01 → 02 → 03 → 04 → 05 → 06 → 07 → 08`, then `09 → 10 → 11 → 12` (uses `03` and `09`)
+**Dependency chain:** `01 → 02 → 03 → 04 → 05 → 06 → 07 → 08`, then `09 → 10 → 11 → 12` (uses `03` and `09`).
 
 See [`TRANSFORMERS_2026.md`](TRANSFORMERS_2026.md) for the full story of what changed since 2017 — and what we deliberately left out (MoE, sliding-window attention, QK-Norm) as exercises.
 
----
-
-## Quick Start
-
-### Prerequisites
-
-- Python 3.8+
-- NumPy
-
-```bash
-pip install numpy
-```
-
-### Run individual blocks
-
-Each file is self-contained with a `if __name__ == "__main__"` test:
-
-```bash
-python3 01_tokenizer.py       # See vocabulary, encoding, training pairs
-python3 02_embeddings.py      # See token + positional embeddings
-python3 03_attention.py       # See attention weights, gradient check
-python3 04_multi_head_attention.py  # See per-head attention patterns
-python3 05_feedforward_layernorm.py # See FFN shapes, LayerNorm effect
-python3 06_transformer_block.py     # See data flow through a full block
-python3 07_transformer.py     # See full model forward/backward pass
-```
-
-### Run the modern (2026) blocks
-
-```bash
-python3 09_rope.py                # RoPE: relative-position property proof
-python3 10_rmsnorm_swiglu.py      # RMSNorm vs LayerNorm, SwiGLU gating
-python3 11_gqa_kv_cache.py        # GQA + KV cache, memory math
-python3 12_modern_transformer.py  # Full Llama-style block, cached generation
-```
-
-### Train and generate
-
-```bash
-python3 08_train_and_generate.py
-```
-
-Expected output (~3 seconds on a modern CPU):
-
-```
-  Epoch    1/100  Loss: 2.7414  Sample: "the cat the watched and ..."
-  Epoch   50/100  Loss: 0.2060  Sample: "the cat sat on the mat and ..."
-  Epoch  100/100  Loss: 0.1807  Sample: "the cat watched the bird and ..."
-
-  Loss: 2.74 → 0.18 (93.4% reduction)
-```
-
----
-
-## Model Configuration
-
-| Parameter | Value | Why |
-|-----------|-------|-----|
-| `vocab_size` | 24 | Small corpus → tiny vocabulary |
-| `d_model` | 32 | Small enough to print full matrices |
-| `n_heads` | 2 | Minimum to demonstrate multi-head concept |
-| `d_k` | 16 | `d_model / n_heads` |
-| `d_ff` | 128 | Standard 4× expansion ratio |
-| `n_layers` | 1 | One block is sufficient to learn the architecture |
-| `seq_len` | 16 | Short context window |
-| **Total params** | **~14,200** | Trains in seconds on CPU |
+*(back to [top](#building-a-transformer-from-scratch))*
 
 ---
 
@@ -257,7 +292,7 @@ After LayerNorm: mean ≈ 0, std ≈ 1 for every token. This stability is critic
 
 **Concept:** Combine attention + FFN with residual connections and pre-normalization.
 
-```
+```text
 Input X
   │
   ├───────────────┐
@@ -269,7 +304,7 @@ LayerNorm         │      Pre-Norm: normalize BEFORE the sublayer
 Multi-Head Attn   │
   │               │
   ▼               │
-  + ◄─────────────┘      Residual: output = input + sublayer(norm(input))
++ ◄───────────────┘      Residual: output = input + sublayer(norm(input))
   │
   ├───────────────┐
   │               │
@@ -280,7 +315,7 @@ LayerNorm         │
 Feed-Forward      │
   │               │
   ▼               │
-  + ◄─────────────┘      Residual again
++ ◄───────────────┘      Residual again
   │
   ▼
 Output
@@ -339,6 +374,8 @@ for i in range(max_tokens):
 - `T = 1.0` — sample from the model's distribution (balanced)
 - `T > 1.0` — flatter distribution, more surprising choices
 
+*(back to [top](#building-a-transformer-from-scratch))*
+
 ---
 
 ## What to Expect
@@ -347,9 +384,9 @@ After 100 epochs of training:
 
 | Metric | Value |
 |--------|-------|
-| Starting loss | ~2.74 (near random: ln(24) ≈ 3.18) |
+| Starting loss | ~2.65 (near random: ln(24) ≈ 3.18) |
 | Final loss | ~0.18 |
-| Reduction | 93.4% |
+| Reduction | 93.2% |
 | Training time | ~3 seconds |
 
 The model memorizes the small corpus and generates plausible sentences:
@@ -362,48 +399,53 @@ The model memorizes the small corpus and generates plausible sentences:
 
 This is expected — a 14K-parameter model on a 157-token corpus *should* memorize. The learning objective here is the architecture, not the capacity.
 
+*(back to [top](#building-a-transformer-from-scratch))*
+
+---
+
+## Model Configuration
+
+| Parameter | Value | Why |
+|-----------|-------|-----|
+| `vocab_size` | 24 | Small corpus → tiny vocabulary |
+| `d_model` | 32 | Small enough to print full matrices |
+| `n_heads` | 2 | Minimum to demonstrate multi-head concept |
+| `d_k` | 16 | `d_model / n_heads` |
+| `d_ff` | 128 | Standard 4× expansion ratio |
+| `n_layers` | 1 | One block is sufficient to learn the architecture |
+| `seq_len` | 16 | Short context window |
+| **Total params** | **~14,200** | Trains in seconds on CPU |
+
+*(back to [top](#building-a-transformer-from-scratch))*
+
 ---
 
 ## Exercises for Students
 
+<details>
+<summary><strong>2017 edition (click to expand)</strong></summary>
+
 1. **Increase model size** — Try `d_model=64, n_heads=4, n_layers=2`. How does training time and loss change?
-
 2. **Write a bigger corpus** — Edit `CORPUS` in `01_tokenizer.py`. Add more sentences with new words. Does the model still converge?
-
 3. **Implement dropout** — Add a `Dropout` layer after attention and FFN. Does it help when the corpus is larger?
-
 4. **Add learning rate scheduling** — Start with `lr=0.1` and decay it. Does training become more stable?
-
 5. **Visualize attention** — In Block 4, print the attention weights for a trained model. Which head focuses on which relationship?
-
 6. **Compare Pre-Norm vs Post-Norm** — Move LayerNorm to *after* attention/FFN in Block 6. Does training become less stable?
-
 7. **Implement beam search** — Instead of greedy/sampling, keep the top-k partial sequences at each step.
-
 8. **Gradient analysis** — After training, inspect gradient magnitudes through the layers. Do residual connections prevent vanishing gradients?
+</details>
 
----
+<details>
+<summary><strong>2026 edition (click to expand)</strong></summary>
 
-## File Structure
+1. **Add QK-Norm** to Block 11: apply an RMSNorm to Q and K (per head) before RoPE. Compare attention score ranges with and without.
+2. **Minimal MoE**: replace the SwiGLU in Block 12 with 4 SwiGLU "experts" and a learned router (`softmax(x @ W_router)`, pick top-1). Verify only one expert runs per token.
+3. **Sliding-window attention**: in Block 11, mask attention to the previous 4 tokens only. How does the KV cache requirement change?
+4. **Measure the cache**: print `cache_k.nbytes` in Block 11 as you generate 50 tokens. Plot memory vs. sequence length for MHA / GQA / MQA configs.
+5. **Tie it together**: port Blocks 9–12 to PyTorch with autograd and train on the Block 1 corpus. Does the modern stack converge faster than the 2017 one?
+</details>
 
-```
-transformer/
-├── README.md                      ← You are here
-├── TRANSFORMERS_2026.md           ← Field guide: 2017 → 2026, models, learning path
-├── load_module.py                 ← Import helper (Python can't import 01_*.py directly)
-├── 01_tokenizer.py                ← Block 1: Tokenizer
-├── 02_embeddings.py               ← Block 2: Token + Positional Embeddings
-├── 03_attention.py                ← Block 3: Scaled Dot-Product Attention
-├── 04_multi_head_attention.py     ← Block 4: Multi-Head Attention
-├── 05_feedforward_layernorm.py    ← Block 5: FFN + Layer Normalization
-├── 06_transformer_block.py        ← Block 6: Transformer Decoder Block
-├── 07_transformer.py              ← Block 7: Full Transformer + Loss
-├── 08_train_and_generate.py       ← Block 8: Training Loop + Generation
-├── 09_rope.py                     ← Block 9: Rotary Position Embeddings (2026)
-├── 10_rmsnorm_swiglu.py           ← Block 10: RMSNorm + SwiGLU (2026)
-├── 11_gqa_kv_cache.py             ← Block 11: GQA + KV Cache (2026)
-└── 12_modern_transformer.py       ← Block 12: Modern Transformer Block (2026)
-```
+*(back to [top](#building-a-transformer-from-scratch))*
 
 ---
 
@@ -420,6 +462,64 @@ transformer/
 | **Plain SGD** | Simplest optimizer — no momentum, Adam, or schedulers to explain |
 | **Word-level tokens** | Simpler than BPE/SentencePiece; sufficient for a 24-word vocabulary |
 
+*(back to [top](#building-a-transformer-from-scratch))*
+
+---
+
+## File Structure
+
+```text
+transformer/
+├── README.md                      ← You are here
+├── TRANSFORMERS_2026.md           ← Field guide: 2017 → 2026, models, learning path
+├── requirements.txt               ← Python dependencies (numpy)
+├── load_module.py                 ← Import helper (Python can't import 01_*.py directly)
+├── 01_tokenizer.py                ← Block 1: Tokenizer
+├── 02_embeddings.py               ← Block 2: Token + Positional Embeddings
+├── 03_attention.py                ← Block 3: Scaled Dot-Product Attention
+├── 04_multi_head_attention.py     ← Block 4: Multi-Head Attention
+├── 05_feedforward_layernorm.py    ← Block 5: FFN + Layer Normalization
+├── 06_transformer_block.py        ← Block 6: Transformer Decoder Block
+├── 07_transformer.py              ← Block 7: Full Transformer + Loss
+├── 08_train_and_generate.py       ← Block 8: Training Loop + Generation
+├── 09_rope.py                     ← Block 9: Rotary Position Embeddings (2026)
+├── 10_rmsnorm_swiglu.py           ← Block 10: RMSNorm + SwiGLU (2026)
+├── 11_gqa_kv_cache.py             ← Block 11: GQA + KV Cache (2026)
+└── 12_modern_transformer.py       ← Block 12: Modern Transformer Block (2026)
+```
+
+*(back to [top](#building-a-transformer-from-scratch))*
+
+---
+
+## Contributing
+
+This is primarily an educational resource, but improvements are welcome — especially:
+
+- **Bug fixes** in the math or gradient checks
+- **New exercises** that teach a concept well
+- **Clarifications** in the comments or docs
+
+1. Fork the repo
+2. Create a branch (`git checkout -b fix/awesome-fix`)
+3. Commit (`git commit -m 'Fix gradient check in Block 3'`)
+4. Push (`git push origin fix/awesome-fix`)
+5. Open a Pull Request
+
+Please verify any math change still passes the numerical gradient checks (`python3 03_attention.py`, etc.).
+
+*(back to [top](#building-a-transformer-from-scratch))*
+
+---
+
+## License
+
+Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for more information.
+
+© 2026 AwaleSagar
+
+*(back to [top](#building-a-transformer-from-scratch))*
+
 ---
 
 ## References
@@ -432,6 +532,8 @@ transformer/
 - [GLU Variants Improve Transformer](https://arxiv.org/abs/2002.05202) — Shazeer, 2020 (SwiGLU, Block 10)
 - [GQA: Generalized Multi-Query Attention](https://arxiv.org/abs/2305.13245) — Ainslie et al., 2023 (Block 11)
 - [The Big LLM Architecture Comparison](https://magazine.sebastianraschka.com/p/the-big-llm-architecture-comparison) — Raschka, 2025 (survey behind Blocks 9–12)
+
+*(back to [top](#building-a-transformer-from-scratch))*
 
 ---
 
