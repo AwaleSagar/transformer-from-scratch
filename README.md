@@ -72,8 +72,8 @@ The model is deliberately tiny (~14,200 parameters, 24-word vocabulary) — it's
 ### Install
 
 ```bash
-git clone https://github.com/AwaleSagar/transformer.git
-cd transformer
+git clone https://github.com/AwaleSagar/transformer-from-scratch.git
+cd transformer-from-scratch
 pip install -r requirements.txt      # just numpy
 ```
 
