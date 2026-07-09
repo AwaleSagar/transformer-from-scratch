@@ -50,7 +50,6 @@ softmax = _block3.softmax
 
 _block9 = load("09_rope.py")
 rope_frequencies = _block9.rope_frequencies
-apply_rope = _block9.apply_rope
 
 
 class GroupedQueryAttention:

@@ -5,7 +5,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Parameters](https://img.shields.io/badge/parameters-~14K-orange)
 ![Trains in](https://img.shields.io/badge/trains%20in-~3s-success)
-![Blocks](https://img.shields.io/badge/blocks-12-purple)
+![Blocks](https://img.shields.io/badge/blocks-13-purple)
 
 > **A 12-part educational series** — build a GPT-style language model block by block in Python using only NumPy, then upgrade it to the modern 2026 architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache). Every forward *and* backward pass is hand-written so you can see exactly how gradients flow.
 
@@ -111,6 +111,7 @@ python3 09_rope.py                # RoPE: relative-position property proof
 python3 10_rmsnorm_swiglu.py      # RMSNorm vs LayerNorm, SwiGLU gating
 python3 11_gqa_kv_cache.py        # GQA + KV cache, memory math
 python3 12_modern_transformer.py  # full Llama-style block, cached generation
+python3 13_mixture_of_experts.py  # sparse top-k routing over SwiGLU experts
 ```
 
 *(back to [top](#building-a-transformer-from-scratch))*
@@ -181,10 +182,13 @@ Each file introduces one concept, imports from the previous files, and includes 
 | 10 | `10_rmsnorm_swiglu.py` | **RMSNorm + SwiGLU** | The modern norm and gated FFN that replaced LayerNorm/ReLU |
 | 11 | `11_gqa_kv_cache.py` | **GQA + KV Cache** | Grouped-Query Attention with cached generation, verified against the full pass |
 | 12 | `12_modern_transformer.py` | **Modern Transformer** | A Llama-style mini-model: RoPE + RMSNorm + SwiGLU + GQA + tied embeddings |
+| 13 | `13_mixture_of_experts.py` | **Mixture-of-Experts** | Sparse top-k routing over many SwiGLU experts — huge capacity, small per-token compute (forward-only) |
 
-**Dependency chain:** `01 → 02 → 03 → 04 → 05 → 06 → 07 → 08`, then `09 → 10 → 11 → 12` (uses `03` and `09`).
+**Dependency chain:** `01 → 02 → 03 → 04 → 05 → 06 → 07 → 08`, then `09 → 10 → 11 → 12` (uses `03` and `09`); `13` reuses `03` and `10`.
 
-See [`TRANSFORMERS_2026.md`](TRANSFORMERS_2026.md) for the full story of what changed since 2017 — and what we deliberately left out (MoE, sliding-window attention, QK-Norm) as exercises.
+See [`TRANSFORMERS_2026.md`](TRANSFORMERS_2026.md) for the full story of what changed since 2017 — and what we deliberately left out (sliding-window attention, QK-Norm) as exercises.
+
+**Verification gate:** `python verify_all.py` imports every block and asserts its core guarantee (gradient checks for Blocks 3–5, smoke backward for 6–7, forward invariants for 9–12, the top-k routing invariant for 13). It runs in CI on every push and pull request.
 
 *(back to [top](#building-a-transformer-from-scratch))*
 
@@ -474,6 +478,7 @@ transformer/
 ├── TRANSFORMERS_2026.md           ← Field guide: 2017 → 2026, models, learning path
 ├── requirements.txt               ← Python dependencies (numpy)
 ├── load_module.py                 ← Import helper (Python can't import 01_*.py directly)
+├── verify_all.py                  ← Verification gate: imports every block and asserts its guarantee
 ├── 01_tokenizer.py                ← Block 1: Tokenizer
 ├── 02_embeddings.py               ← Block 2: Token + Positional Embeddings
 ├── 03_attention.py                ← Block 3: Scaled Dot-Product Attention
@@ -485,7 +490,8 @@ transformer/
 ├── 09_rope.py                     ← Block 9: Rotary Position Embeddings (2026)
 ├── 10_rmsnorm_swiglu.py           ← Block 10: RMSNorm + SwiGLU (2026)
 ├── 11_gqa_kv_cache.py             ← Block 11: GQA + KV Cache (2026)
-└── 12_modern_transformer.py       ← Block 12: Modern Transformer Block (2026)
+├── 12_modern_transformer.py       ← Block 12: Modern Transformer Block (2026)
+└── 13_mixture_of_experts.py       ← Block 13: Mixture-of-Experts (2026)
 ```
 
 *(back to [top](#building-a-transformer-from-scratch))*

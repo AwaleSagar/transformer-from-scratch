@@ -22,7 +22,7 @@ Still missing from our toy (used by the biggest models):
   - Mixture-of-Experts: replace ONE SwiGLU with MANY and
     route each token to its top-k experts → huge capacity,
     small per-token compute (DeepSeek V3: 671B params,
-    only 37B active per token)
+    only 37B active per token). Built next in Block 13.
   - Sliding-window / linear attention layers for long context
   - QK-Norm (RMSNorm on queries/keys) for training stability
 
