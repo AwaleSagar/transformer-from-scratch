@@ -97,7 +97,7 @@ You've built a transformer from raw NumPy — that puts you ahead of most people
 ## Exercises (2026 edition)
 
 1. **Add QK-Norm** to Block 11: apply an RMSNorm to Q and K (per head) before RoPE. Compare attention score ranges with and without.
-2. **Minimal MoE**: replace the SwiGLU in Block 12 with 4 SwiGLU "experts" and a learned router (`softmax(x @ W_router)`, pick top-1). Verify only one expert runs per token.
+2. **Minimal MoE**: replace the SwiGLU in Block 12 with 4 SwiGLU "experts" and a learned router (`softmax(x @ W_router)`, pick top-1). Verify only one expert runs per token. *(A worked forward-only version lives in `13_mixture_of_experts.py` — try wiring it into Block 12 yourself.)*
 3. **Sliding-window attention**: in Block 11, mask attention to the previous 4 tokens only. How does the KV cache requirement change?
 4. **Measure the cache**: print `cache_k.nbytes` in Block 11 as you generate 50 tokens. Plot memory vs. sequence length for MHA / GQA / MQA configs.
 5. **Tie it together**: port Blocks 9–12 to PyTorch with autograd and train on the Block 1 corpus. Does the modern stack converge faster than the 2017 one?

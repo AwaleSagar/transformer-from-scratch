@@ -248,3 +248,5 @@ if __name__ == "__main__":
     print(f"  Q[{i},{j}] analytical grad: {analytical_grad:.6f}")
     print(f"  Difference: {abs(numerical_grad - analytical_grad):.2e}")
     print(f"  {'✓ Gradients match!' if abs(numerical_grad - analytical_grad) < 1e-5 else '✗ Mismatch!'}")
+    # Gate: fail loudly if the analytical gradient is wrong (not just a print).
+    assert abs(numerical_grad - analytical_grad) < 1e-5, "Gradient check failed!"

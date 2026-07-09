@@ -367,3 +367,5 @@ if __name__ == "__main__":
     print(f"  Analytical: {analytical:.6f}")
     print(f"  Difference: {abs(numerical - analytical):.2e}")
     print(f"  {'✓ Match!' if abs(numerical - analytical) < 1e-4 else '✗ Mismatch!'}")
+    # Gate: fail loudly if the analytical gradient is wrong (not just a print).
+    assert abs(numerical - analytical) < 1e-4, "Gradient check failed!"
